@@ -7,8 +7,12 @@ for(i in 1:length(M)){
   
 }
 
+Runoff.model<-matrix(0,1, length(s.o))
+for(i in 1:length(s.o)){
+Runoff.model[i]<-Runoff(s.o[i])
+}
 
-rownames(ET.model.a)<-M
+#rownames(ET.model.a)<-M
 
 dif<-ET.model.a - ET.exp
 #ET.model.a<-((m.n*e.p)/alpha)*(1-M)*beta.s(M,k.v) + M*k.v
@@ -44,13 +48,16 @@ w<-0 #assume no capillary rise
 
 require(gsl)
 gamma.ratio<-gamma_inc(gamma.depth, lambda*h.o)/gamma(gamma.depth)
-B<- ((1-M)/(1+M*k.v-w/e.p))+(k.v*(M^2)+(1-M)*w/e.p)/((2*(1+M*k.v-w/e.p)))
 
-C<- 1/2*(M*k.v-w/e.p)^(-2)
-
-E<-((alpha*n*(c-3)*Ksat*Matrix.pot*ex.diffus)/(pi*e.p^2))*s.o^((C+5)/2)
-
-beta.s<-function(M, k.v){(gamma.ratio)-((1+(alpha*h.o/e.p)/lambda*h.o)^(-1*gamma.depth))*((gamma_inc(gamma.depth, lambda*h.o +alpha*lambda*h.o/e.p))/gamma(gamma.depth))*exp(-B*E)+(1+gamma.ratio)*
+#define beta.s function
+beta.s<-function(M, k.v){
+  B<- ((1-M)/(1+M*k.v-w/e.p))+(k.v*(M^2)+(1-M)*w/e.p)/((2*(1+M*k.v-w/e.p)))
+  
+  C<- 1/2*(M*k.v-w/e.p)^(-2)
+  
+  E<-((alpha*n*(c-3)*Ksat*Matrix.pot*ex.diffus)/(pi*e.p^2))*s.o^((C+5)/2)
+  
+  beta<-(gamma.ratio)-((1+(alpha*h.o/e.p)/lambda*h.o)^(-1*gamma.depth))*((gamma_inc(gamma.depth, lambda*h.o +alpha*lambda*h.o/e.p))/gamma(gamma.depth))*exp(-B*E)+(1+gamma.ratio)*
   (1-exp(-B*E-alpha*h.o/e.p)*(1+M*k.v+(2*B)^(1/2)*E-w/e.p)+
      exp(-C*E-alpha*h.o/e.p)*(M*k.v +(2*C)^(1/2)*E-w/e.p)+
      (2*E)^(1/2)*exp(-alpha*h.o/e.p)*(gamma_inc(3/2, C*E)-gamma_inc(3/2,B*E) + 
@@ -60,23 +67,30 @@ beta.s<-function(M, k.v){(gamma.ratio)-((1+(alpha*h.o/e.p)/lambda*h.o)^(-1*gamma
 
 }
 
-#need to define exfiltration diffusivity
-s.o<- 0.8 #made this up , but should be between 0 and 1,and need to solve for s.o that satisfies water balance closure 
+
+
+
+#define exfiltration diffusivity
+s.o<-c(0.1,0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, .9999) #made this up , but should be between 0 and 1,and need to solve for s.o that satisfies water balance closure 
+
+
+Runoff<-function(s.o){
 ## define the integrated function
-integrand.ex <- function(x) {x^((c+1)/2)*(s.o-x)^(0.85)}
+  integrand.ex <- function(x) {x^((c+1)/2)*(s.o-x)^(0.85)}
 ## integrate the function from 0 to s.o
-b<-integrate(integrand.ex, lower = 0, upper = s.o)
+  b<-integrate(integrand.ex, lower = 0, upper = s.o)
 #b$value provides the value of the intergral
-ex.diffus<-s.o^((c+1)/2)*(1.85*s.o^(-1.85)*b$value) #in.diffus and out.diffus are incorrectly specified
+  ex.diffus<-s.o^((c+1)/2)*(1.85*s.o^(-1.85)*b$value) #in.diffus and out.diffus are incorrectly specified
 
 ###Runoff model
-mPa<-1100 # mean annual precipitation
-G<-(Ksat*(m.n*m.r)/mPa)*((1+s.o^c)/2)-w/Ksat
+  mPa<-1100 # mean annual precipitation
+  G<-(Ksat*(m.n*m.r)/mPa)*((1+s.o^c)/2)-w/Ksat
 
-integrand.in<-function(x){x^((c+1)/2)*(x-s.o)^(2/3)}
-b.in<-integrate(integrand.in, lower = s.o, upper = 1)
-in.diffus<-(1-s.o)^(5/3)*b.in$value
+  integrand.in<-function(x){x^((c+1)/2)*(x-s.o)^(2/3)}
+  b.in<-integrate(integrand.in, lower = s.o, upper = 1)
+  in.diffus<-(1-s.o)^(5/3)*b.in$value
 
-sigma<-((5*n*(c-3)*lambda^2*Ksat*Matrix.pot*in.diffus*m.r)/12*pi*gamma.depth^2)^(1/3)*(1-s.o)^(2/3)
+  sigma<-((5*n*(c-3)*lambda^2*Ksat*Matrix.pot*in.diffus*m.r)/12*pi*gamma.depth^2)^(1/3)*(1-s.o)^(2/3)
 
-Runoff.a<-mPa*(exp(-G-2*sigma)*gamma(sigma+1)*sigma^(-sigma)+((m.t*Ksat)/mPa)*s.o^C)
+  Runoff.a<-mPa*(exp(-G-2*sigma)*gamma(sigma+1)*sigma^(-sigma)+((m.t*Ksat)/mPa)*s.o^C)
+}
