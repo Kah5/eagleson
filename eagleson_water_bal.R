@@ -1,11 +1,42 @@
-Pr.a<-ET.model.a+Runoff.a
+
+###goal: 
+#find s.o and M such that Pr.modeled = annual Precip
+#in other words, such that ET.model.a(M,kv)-Runoff.model(s.o)-Annual Precip=0
+M<-runif(100)
+s.o<-M
+set.seed(10)
+#create matrix of possible M and s.o combinations
+
+m.so<-expand.grid(M,s.o)
+test<-apply(X = m.so, MARGIN=1 ,FUN = water.bal)
+
+Runoff(s.o1)
+
+water.bal<-function(M,s.o){
+abs(ET.model.a(M)+Runoff(s.o)-mPa)
+}
+
+
+
+Pr.m<-matrix(0,length(ET.model.a), length(Runoff.model))
+for(i in 1:length(ET.model.a)){
+for(i in 1:length(Runoff.model)){
+    Pr.m[i,]<-ET.model.a[i]+Runoff.model[j]
+}
+}
+
+ET.model.a<-function(M){
+ET.model.a<-((m.n*e.p)/alpha)*(1-M)*beta.s(M) + M*k.v
+}
+
+Pr.diff<-abs(Pr.m-mPa)
 ET.exp<-mPa-Runoff.a
 
 ET.model.a<-matrix(0,10,1)
 for(i in 1:length(M)){
-    ET.model.a[i]<-((m.n*e.p)/alpha)*(1-M[i])*beta.s(M[i],k.v) + M[i]*k.v
-  
+    ET.model.a[i]<-((m.n*e.p)/alpha)*(1-M[i])*beta.s(M[i],k.v) + M[i]*k.v 
 }
+
 
 Runoff.model<-matrix(0,1, length(s.o))
 for(i in 1:length(s.o)){
@@ -14,7 +45,7 @@ Runoff.model[i]<-Runoff(s.o[i])
 
 #rownames(ET.model.a)<-M
 
-dif<-ET.model.a - ET.exp
+
 #ET.model.a<-((m.n*e.p)/alpha)*(1-M)*beta.s(M,k.v) + M*k.v
 
 #m.n=mean number rainstorms per year
@@ -50,7 +81,7 @@ require(gsl)
 gamma.ratio<-gamma_inc(gamma.depth, lambda*h.o)/gamma(gamma.depth)
 
 #define beta.s function
-beta.s<-function(M, k.v){
+beta.s<-function(M){
   B<- ((1-M)/(1+M*k.v-w/e.p))+(k.v*(M^2)+(1-M)*w/e.p)/((2*(1+M*k.v-w/e.p)))
   
   C<- 1/2*(M*k.v-w/e.p)^(-2)
@@ -71,16 +102,15 @@ beta.s<-function(M, k.v){
 
 
 #define exfiltration diffusivity
-s.o<-c(0.1,0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, .9999) #made this up , but should be between 0 and 1,and need to solve for s.o that satisfies water balance closure 
-
+#s.o<-c(0.1,0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, .9999) #made this up , but should be between 0 and 1,and need to solve for s.o that satisfies water balance closure 
+#s.o<-0.5
 
 Runoff<-function(s.o){
 ## define the integrated function
   integrand.ex <- function(x) {x^((c+1)/2)*(s.o-x)^(0.85)}
 ## integrate the function from 0 to s.o
-  b<-integrate(integrand.ex, lower = 0, upper = s.o)
 #b$value provides the value of the intergral
-  ex.diffus<-s.o^((c+1)/2)*(1.85*s.o^(-1.85)*b$value) #in.diffus and out.diffus are incorrectly specified
+  ex.diffus<-s.o^((c+1)/2)*(1.85*s.o^(-1.85)*integrate(integrand.ex, lower = 0, upper = s.o)$value) #in.diffus and out.diffus are incorrectly specified
 
 ###Runoff model
   mPa<-1100 # mean annual precipitation
@@ -92,5 +122,14 @@ Runoff<-function(s.o){
 
   sigma<-((5*n*(c-3)*lambda^2*Ksat*Matrix.pot*in.diffus*m.r)/12*pi*gamma.depth^2)^(1/3)*(1-s.o)^(2/3)
 
-  Runoff.a<-mPa*(exp(-G-2*sigma)*gamma(sigma+1)*sigma^(-sigma)+((m.t*Ksat)/mPa)*s.o^C)
+  Runoff.a<-mPa*(exp(-G-2*sigma)*gamma(sigma+1)*sigma^(-sigma)+((m.t*Ksat)/mPa)*s.o^c)
 }
+
+run<-lapply(X = s.o,FUN = Runoff)
+ET.mod<-lapply(X=M,FUN = ET.model.a)
+net.water<-matrix(0,length(ET.mod),length(run))
+
+for(i in 1:length(ET.mod)){
+  for(j in 1:length(run)){
+net.water[i,j]<- abs(ET.mod[i]+run[j]-mPa)
+}}
