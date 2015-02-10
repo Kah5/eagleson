@@ -2,8 +2,9 @@
 ###goal: 
 #find s.o and M such that Pr.modeled = annual Precip
 #in other words, such that ET.model.a(M,kv)-Runoff.model(s.o)-Annual Precip=0
-M<-runif(100)
-s.o<-M
+M.1<-as.list(runif(100))
+
+s.o<-M.1
 set.seed(10)
 #create matrix of possible M and s.o combinations
 
@@ -81,7 +82,7 @@ require(gsl)
 gamma.ratio<-gamma_inc(gamma.depth, lambda*h.o)/gamma(gamma.depth)
 
 #define beta.s function
-beta.s<-function(M){
+beta.s<-function(M,s.o){
   B<- ((1-M)/(1+M*k.v-w/e.p))+(k.v*(M^2)+(1-M)*w/e.p)/((2*(1+M*k.v-w/e.p)))
   
   C<- 1/2*(M*k.v-w/e.p)^(-2)
@@ -123,10 +124,14 @@ Runoff<-function(s.o){
   sigma<-((5*n*(c-3)*lambda^2*Ksat*Matrix.pot*in.diffus*m.r)/12*pi*gamma.depth^2)^(1/3)*(1-s.o)^(2/3)
 
   Runoff.a<-mPa*(exp(-G-2*sigma)*gamma(sigma+1)*sigma^(-sigma)+((m.t*Ksat)/mPa)*s.o^c)
+
+  
+
 }
 
 run<-lapply(X = s.o,FUN = Runoff)
-ET.mod<-lapply(X=M,FUN = ET.model.a)
+ET.mod<-lapply(X = M.1, FUN=ET.model.a)
+
 net.water<-matrix(0,length(ET.mod),length(run))
 
 for(i in 1:length(ET.mod)){
