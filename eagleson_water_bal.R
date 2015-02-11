@@ -1,52 +1,23 @@
 #Eagleson Water Balance model with s.o and M as state variables
-#
+#This is coded up with parameters from Clinton, MA clay parameters
+#Need to check lambda parameters and gamma.depth
 
 
 ###Goal: 
 ###find s.o and M such that Pr.modeled = annual Precip
 ###in other words, such that ET.model.a(M,kv)-Runoff.model(s.o)-Annual Precip=0
-M.1<-as.list(runif(10000))
+M.1<-as.list(runif(100)) #samples from uniform distribution to get values from 0 to 1
+s.o<-M.1 #take the same values for s.o (also from 0 to 1)
+#set.seed(10)
 
-s.o<-M.1
-set.seed(10)
-#create matrix of possible M and s.o combinations
-
+#create matrix of all possible M and s.o combinations to run in the water balance function
 m.so<-expand.grid(M.1,s.o)
-#test<-apply(X = m.so, MARGIN=1 ,FUN = water.bal)
 
-#Runoff(s.o1) #test 
 
 #basic water balance
-water.bal<-function(M,s.o){
-abs(ET.model.a(M)+Runoff(s.o)-mPa)
-}
-
-Pr.m<-matrix(0,length(ET.model.a), length(Runoff.model))
-for(i in 1:length(ET.model.a)){
-for(i in 1:length(Runoff.model)){
-    Pr.m[i,]<-ET.model.a[i]+Runoff.model[j]
-}
-}
-
-ET.model.a<-function(M,s.o){
-ET.model.a<-((m.n*e.p)/alpha)*(1-M)*beta.s(M,s.o) + M*k.v
-}
-
-#Pr.diff<-abs(Pr.m-mPa)
-#ET.exp<-mPa-Runoff.a
-#test of ET.model in a for loop
-#ET.model.a<-matrix(0,10,1)
-#for(i in 1:length(M)){
-#    ET.model.a[i]<-((m.n*e.p)/alpha)*(1-M[i])*beta.s(M[i],k.v) + M[i]*k.v 
+#water.bal<-function(M,s.o){
+#abs(ET.model.a(M)+Runoff(s.o)-mPa)
 #}
-
-#runoff model as a for loop
-#Runoff.model<-matrix(0,1, length(s.o))
-#for(i in 1:length(s.o)){
-#Runoff.model[i]<-Runoff(s.o[i])
-#}
-
-#rownames(ET.model.a)<-M
 
 
 #ET.model.a<-((m.n*e.p)/alpha)*(1-M)*beta.s(M,k.v) + M*k.v
@@ -57,11 +28,11 @@ ET.model.a<-((m.n*e.p)/alpha)*(1-M)*beta.s(M,s.o) + M*k.v
 #ET.model.a=evaporation component of water balance
 
 #treat M and k.v as state variables
-#M<-c(0.1,0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, .9999)
 
 water.bal<-function(M,s.o){
-k.v<-0.097/e.p #unstressed composite transpiration rate/e.p
+#k.v<-0.097/e.p #unstressed composite transpiration rate/e.p
 
+k.v<-1
 
 
 #####################################
@@ -69,12 +40,13 @@ k.v<-0.097/e.p #unstressed composite transpiration rate/e.p
 #####################################
 m.n<-15 # mean number of storms per year
 e.p<-0.15 # average bare soil potential evaporation rate
-m.Pa<-111.3 #mean annual precipitation--fix
+m.Pa<-111.3 #mean annual precipitation in cm
 m.r<-0.32 #mean storm depth--double check value
-m.t<-365 #mean time between storms
-alpha<-1/m.t #one over mean time between storms
-lambda<-0.5 
-gamma.depth<-0.5
+m.b<-3.0 #in units of days
+m.t<-365 #mean rainy season
+alpha<-1/m.b #one over mean time between storms
+lambda<-0.5 #may be incorrect
+gamma.depth<-0.5 #these may be incorrect
 
 Ksat<-0.72 #k saturation
 Matrix.pot<-25 #soil matrix potential
@@ -114,9 +86,7 @@ beta.s<-function(M, s.o){
 ##########################################
 #define exfiltration diffusivity & runoff#
 ##########################################
-#s.o<-c(0.1,0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, .9999) #made this up , but should be between 0 and 1,and need to solve for s.o that satisfies water balance closure 
-#s.o<-0.5
-s.o.all<-seq(0.01,0.9999,0.01)
+
 
 #Runoff Function:
 
@@ -127,7 +97,7 @@ Runoff<-function(s.o){
 #b$value provides the value of the intergral
   ex.diffus<-s.o^((c+1)/2)*(1.85*s.o^(-1.85)*integrate(integrand.ex, lower = 0, upper = s.o)$value) #in.diffus and out.diffus are incorrectly specified
 ###Runoff model
-  mPa<-1100 # mean annual precipitation
+  mPa<-1113 # mean annual precipitation in mm, not sure if this needs to be changed to cm
   G<-(Ksat*(m.n*m.r)/mPa)*((1+s.o^c)/2)-w/Ksat
 
   integrand.in<-function(x){x^((c+1)/2)*(x-s.o)^(2/3)}
@@ -151,6 +121,15 @@ ET.model.a<-function(M,s.o){
 }
 
 
+test3<-mapply(water.bal, m.so$Var1, m.so$Var2) # this is to test if R can handle the large m.so
 
+#test3 now contains the output of water.bal for all combinations of 100x100 values between 0 and 1
+#to determine which values of M and s.o close the water balance, we need to keep values where abs(ET.model.a(M,s.o)+Runoff(s.o)-mPa) is ~ 0
 
+#lets say we are willing to accept M and s.o values that fall within +/-5% of the Mean annual precidp
+wb<-cbind(m.so, test3)
+wb.small<-wb[wb$test3 < (mPa*0.005),]
 
+plot(wb.small$Var1,wb.small$Var2,)
+
+plot(wb.small$Var1,wb.small$Var2, main="Isoclines of parameter combinations (M,s.o) that satisfiy water balance closre for Clinton, MA", xlab="M, Canopy density", ylab="Equlibrium soil moisture, s.o")
