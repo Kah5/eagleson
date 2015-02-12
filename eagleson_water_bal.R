@@ -27,13 +27,6 @@ m.so<-expand.grid(M.1,s.o)
 #M=vegetation canopy denisity
 #ET.model.a=evaporation component of water balance
 
-#treat M and k.v as state variables
-
-water.bal<-function(M,s.o){
-#k.v<-0.097/e.p #unstressed composite transpiration rate/e.p
-
-k.v<-1
-
 
 #####################################
 #define site based model parameters##
@@ -45,18 +38,72 @@ m.r<-0.32 #mean storm depth--double check value
 m.b<-3.0 #in units of days
 m.t<-365 #mean rainy season
 alpha<-1/m.b #one over mean time between storms
-lambda<-0.5 #may be incorrect
-gamma.depth<-0.5 #these may be incorrect
+#Eagleson (2002) has poisson pulse parameters for a number of stations in Appendix F
+#for Clinton, MA, I used parameters for Boston (Station ID 14 in eagleson
+lambda<-1.47*2.54 #may be incorrect, changed inches to cm #scale parameter for gamma distribution of storm depths (1/cm)
+gamma.depth<-0.50 #these may be incorrect #shape parameter for the gamma distribution of storm depths
 
-Ksat<-0.72 #k saturation
-Matrix.pot<-25 #soil matrix potential
-c<-12 #for clay
-n<-0.45 #soil porosity, for clay
-h.o<-0.1 # small constant value for surface water retention
-k.v<-1# unstressed transpiration
-M<-0.5 # ranges from 0 to 1 (but cant be one)
-w<-0 #assume no capillary rise
 
+#treat M and k.v as state variables
+
+#create a list of these params to feed into the water.bal model
+
+#the general water balance function
+water.bal<-function(M,s.o, type){
+  
+  
+#define soil paramters
+  if(type =="clay"){
+  Ksat<-0.72 #k saturation
+  Matrix.pot<-25 #soil matrix potential
+  c<-12 #for clay
+  n<-0.45 #soil porosity, for clay
+  h.o<-0.1 # small constant value for surface water retention
+  
+  k.v<-0.937/e.p# unstressed transpiration
+  #M<-0.5 # ranges from 0 to 1 (but cant be one)
+  w<-0 #assume no capillary rise
+  }else{
+    if(type =="clayloam"){
+      Ksat<-2.0 #k saturation
+      Matrix.pot<-19 #soil matrix potential
+      c<-10 #for clayloam
+      n<-0.35 #soil porosity, for clay
+      
+      ##these values set to constant for this purpose
+      h.o<-0.1 # small constant value for surface water retention
+      k.v<-1# unstressed transpiration
+      #M<-0.5 # ranges from 0 to 1 (but cant be one)
+      w<-0 #assume no capillary rise
+  }else{
+    if(type =="siltloam"){
+      Ksat<-8.64 #k saturation
+      Matrix.pot<-166 #soil matrix potential
+      c<-6 #for clayloam
+      n<-0.35 #soil porosity, for clay
+      
+      ##these values set to constant for this purpose
+      h.o<-0.1 # small constant value for surface water retention
+      k.v<-1# unstressed transpiration
+      #M<-0.5 # ranges from 0 to 1 (but cant be one)
+      w<-0 #assume no capillary rise
+  }else{
+    if(type =="sandyloam"){
+      Ksat<-18 #k saturation
+      Matrix.pot<-200 #soil matrix potential
+      c<-4 #for clayloam
+      n<-0.25 #soil porosity, for clay
+      
+      ##these values set to constant for this purpose
+      h.o<-0.1 # small constant value for surface water retention
+      k.v<-1# unstressed transpiration
+      #M<-0.5 # ranges from 0 to 1 (but cant be one)
+      w<-0 #assume no capillary rise
+  }
+  }}}
+  
+#k.v<-0.097/e.p #unstressed composite transpiration rate/e.p
+#k.v<-1
 #####################
 #####Beta.s model####
 #####################
@@ -121,15 +168,17 @@ ET.model.a<-function(M,s.o){
 }
 
 
-test3<-mapply(water.bal, m.so$Var1, m.so$Var2) # this is to test if R can handle the large m.so
-
+silt.loam<-mapply(water.bal, m.so$Var1, m.so$Var2, type="siltloam") # this is to test if R can handle the large m.so
+clay.loam<-mapply(water.bal, m.so$Var1, m.so$Var2, type="clayloam")
+sandy.loam<-mapply(water.bal, m.so$Var1, m.so$Var2, type="sandyloam")
+clay<-mapply(water.bal, m.so$Var1, m.so$Var2, type="clay")
 #test3 now contains the output of water.bal for all combinations of 100x100 values between 0 and 1
 #to determine which values of M and s.o close the water balance, we need to keep values where abs(ET.model.a(M,s.o)+Runoff(s.o)-mPa) is ~ 0
 
 #lets say we are willing to accept M and s.o values that fall within +/-5% of the Mean annual precidp
 wb<-cbind(m.so, test3)
-wb.small<-wb[wb$test3 < (mPa*0.005),]
+wb.small<-wb[wb$test3 < (mPa*0.0155),]
 
-plot(wb.small$Var1,wb.small$Var2,)
+plot(wb.small$Var1,wb.small$Var2,type="l", col="red")
 
-plot(wb.small$Var1,wb.small$Var2, main="Isoclines of parameter combinations (M,s.o) that satisfiy water balance closre for Clinton, MA", xlab="M, Canopy density", ylab="Equlibrium soil moisture, s.o")
+plot(wb.small$Var1,wb.small$Var2, type="l", col="red", main="Isoclines of parameter combinations (M,s.o) that satisfiy water balance closre for Clinton, MA", xlab="M, Canopy density", ylab="Equlibrium soil moisture, s.o")
