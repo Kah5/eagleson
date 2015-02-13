@@ -67,7 +67,7 @@ if(site="Clinton"){
 
 
 
-water.bal<-function(M, s.o, type){
+water.bal<-function(M, s.o, site, type){
   #####################################
   #define site based model parameters##
   #####################################
@@ -192,8 +192,8 @@ Runoff<-function(s.o){
 #b$value provides the value of the intergral
   ex.diffus<-s.o^((c+1)/2)*(1.85*s.o^(-1.85)*integrate(integrand.ex, lower = 0, upper = s.o)$value) #in.diffus and out.diffus are incorrectly specified
 ###Runoff model
-  mPa<-111.3 # mean annual precipitation in mm, not sure if this needs to be changed to cm
-  G<-(Ksat*(m.n*m.r)/mPa)*(((1+s.o^c)/2)-(w/Ksat))
+  mPa<-m.Pa # mean annual precipitation in mm, not sure if this needs to be changed to cm
+  G<-(Ksat*(m.n*m.r)/m.Pa)*(((1+s.o^c)/2)-(w/Ksat))
 
   integrand.in<-function(x){x^((c+1)/2)*(x-s.o)^(2/3)}
   b.in<-integrate(integrand.in, lower = s.o, upper = 1)
@@ -201,7 +201,7 @@ Runoff<-function(s.o){
 
   sigma<-((5*n*(c-3)*lambda^2*Ksat*Matrix.pot*in.diffus*m.r)/12*pi*gamma.depth^2)^(1/3)*(1-s.o)^(2/3)
 
-  Runoff.a<-mPa*(exp(-G-2*sigma)*gamma(sigma+1)*sigma^(-sigma)+((m.t*Ksat)/m.Pa)*s.o^c)
+  Runoff.a<-m.Pa*(exp(-G-2*sigma)*gamma(sigma+1)*sigma^(-sigma)+((m.t*Ksat)/m.Pa)*s.o^c)
 }
 
 
@@ -215,38 +215,35 @@ ET.model.a<-function(M, s.o){
   
 }
 
-
-silt.loam<-mapply(water.bal, m.so$Var1, m.so$Var2,type="siltloam") # this is to test if R can handle the large m.so
-
-
-
-clay.loam<-mapply(water.bal, m.so$Var1, m.so$Var2, type="clayloam")
-sandy.loam<-mapply(water.bal, m.so$Var1, m.so$Var2, type="sandyloam")
-clay<-mapply(water.bal, m.so$Var1, m.so$Var2,type="clay")
+# this appears to work well for Clinton, MA, but not SantaPaula, CA
+silt.loam<-mapply(water.bal, m.so$Var1, m.so$Var2,site="SantaPaula",type="siltloam") # this is to test if R can handle the large m.so
+clay.loam<-mapply(water.bal, m.so$Var1, m.so$Var2,site="SantaPaula", type="clayloam")
+sandy.loam<-mapply(water.bal, m.so$Var1, m.so$Var2,site="SantaPaula", type="sandyloam")
+clay<-mapply(water.bal, m.so$Var1, m.so$Var2,site="SantaPaula",type="clay")
 #test3 now contains the output of water.bal for all combinations of 100x100 values between 0 and 1
 #to determine which values of M and s.o close the water balance, we need to keep values where abs(ET.model.a(M,s.o)+Runoff(s.o)-mPa) is ~ 0
 
 #lets say we are willing to accept M and s.o values that fall within +/-5% of the Mean annual precidp
 #this is not really the best way of doing this
 wb.silt<-cbind(m.so, silt.loam)
-wb.silt.small<-wb.silt[wb.silt$silt.loam < (m.Pa*0.1),]
-
+wb.silt.small<-wb.silt[wb.silt$silt.loam < (m.Pa*0.1)^2,]
+#if we keep the object as the square (Pa-Pmodel)^2
 wb.sandy<-cbind(m.so, sandy.loam)
-wb.sandy.small<-wb.sandy[wb.sandy$sandy.loam <(m.Pa*0.1),]
+wb.sandy.small<-wb.sandy[wb.sandy$sandy.loam <(m.Pa*0.1)^2,]
 
 wb.clay.loam<-cbind(m.so, clay.loam)
-wb.clay.loam.small<-wb.clay.loam[wb.clay.loam$clay.loam < 50,]
+wb.clay.loam.small<-wb.clay.loam[wb.clay.loam$clay.loam < (m.Pa*0.1)^2,]
 
 wb.clay<-cbind(m.so, clay)
-wb.clay.small<-wb.clay[wb.clay$clay < 0,]
+wb.clay.small<-wb.clay[wb.clay$clay < (m.Pa*0.1)^2,]
 
-plot(wb.clay.small$Var1,wb.clay.small$Var2,type="p", col="red", xlim=c(0,1),ylim=c(0,1))
-lines(wb.clay.loam.small$Var1,wb.clay.loam.small$Var2,type="p", col="blue")
-lines(wb.sandy.small$Var1,wb.sandy.small$Var2,type="p", col="green")
-lines(wb.silt.small$Var1,wb.silt.small$Var2,type="p", col="purple")
+plot(wb.clay.small$Var1,wb.clay.small$Var2,type="l", col="red", xlim=c(0,1),ylim=c(0,1))
+lines(wb.clay.loam.small$Var1,wb.clay.loam.small$Var2,type="l", col="blue")
+lines(wb.sandy.small$Var1,wb.sandy.small$Var2,type="l", col="green")
+lines(wb.silt.small$Var1,wb.silt.small$Var2,type="l", col="purple")
 #plot(wb.small$Var1,wb.small$Var2, type="l", col="red", main="Isoclines of parameter combinations (M,s.o) that satisfiy water balance closre for Clinton, MA", xlab="M, Canopy density", ylab="Equlibrium soil moisture, s.o")
 
-test<-data.frame(matrix(unlist(wb.clay.loam), 10000))
+test<-data.frame(matrix(unlist(wb.silt), 10000))
 
 
 
@@ -261,10 +258,14 @@ a<-ddply(data, .(X2), summarise, X3=min(X3),
 plot(a$X1,a$X2)
 
 
-#or
-
-subjmeans <- cast(test, test$X1~test$X2, mean)
-min.M<-matrix(0,1,100)
+#or M
+require(reshape)
+subjmeans <- cast(test, X2~X1, mean)
+min.M<-matrix(0,101,2)
 for(i in 2:101){
-  min.M[i]<-subjmeans[which.min(subjmeans[,i]),]$X1
+  min.M[i,1]<-subjmeans[which.min(subjmeans[,i]),]$X2
+  min.M[i,2]<-as.numeric(colnames(subjmeans[,i]))
 }
+
+
+plot(min.M[,1], min.M[,2], type="l")
