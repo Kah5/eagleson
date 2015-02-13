@@ -248,16 +248,11 @@ lines(wb.silt.small$Var1,wb.silt.small$Var2,type="p", col="purple")
 
 test<-data.frame(matrix(unlist(wb.clay.loam), 10000))
 
-#trying to find a better way to find the s.o value for each M with the lowest Mean squared error
-y<-test[,1]
-x<-test[,2]
-a<-aggregate(y ~ x, test, min)
 
-y<-unique(test[,1])
-x<-unique(test[,2])
-x <- sample(1:100,20)
-which.min(x)
-a<-test[,.SD[which.min(test$X3)],]
+
+
+#trying to find a better way to find the s.o value for each M with the lowest Mean squared error
+
 
 library(plyr)
 data=data.frame(test)
@@ -266,7 +261,10 @@ a<-ddply(data, .(X2), summarise, X3=min(X3),
 plot(a$X1,a$X2)
 
 
-mins
-for(i in unique(test[,1]))){
-mins[i]<-test[test[which.min(test[test$X1==unique(test[3,1]),]$X3),],]
+#or
+
+subjmeans <- cast(test, test$X1~test$X2, mean)
+min.M<-matrix(0,1,100)
+for(i in 2:101){
+  min.M[i]<-subjmeans[which.min(subjmeans[,i]),]$X1
 }
