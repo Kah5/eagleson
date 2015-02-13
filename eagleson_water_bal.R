@@ -31,11 +31,11 @@ m.so<-expand.grid(M.1,s.o)
 #####################################
 #define site based model parameters##
 #####################################
-m.n<-15 # mean number of storms per year
+m.n<-109 # mean number of storms per year # obtained from Eagleson: Climate, Soil, and Vegetation
 e.p<-0.15 # average bare soil potential evaporation rate
-m.Pa<-111.3 #mean annual precipitation in cm
+m.Pa<-102.6 #mean annual precipitation in cm
 m.r<-0.32 #mean storm depth--double check value
-m.b<-3.0 #in units of days
+m.b<-2.98 #in units of days
 m.t<-365 #mean rainy season
 alpha<-1/m.b #one over mean time between storms
 #Eagleson (2002) has poisson pulse parameters for a number of stations in Appendix F
@@ -49,7 +49,7 @@ gamma.depth<-0.50 #these may be incorrect #shape parameter for the gamma distrib
 #create a list of these params to feed into the water.bal model
 
 #the general water balance function
-water.bal<-function(M,s.o, type){
+water.bal<-function(M, s.o, type){
   
   
 #define soil paramters
@@ -58,8 +58,8 @@ water.bal<-function(M,s.o, type){
   Matrix.pot<-25 #soil matrix potential
   c<-12 #for clay
   n<-0.45 #soil porosity, for clay
-  h.o<-0.1 # small constant value for surface water retention
   
+  h.o<-0.1 # small constant value for surface water retention
   k.v<-0.937/e.p# unstressed transpiration
   #M<-0.5 # ranges from 0 to 1 (but cant be one)
   w<-0 #assume no capillary rise
@@ -72,7 +72,7 @@ water.bal<-function(M,s.o, type){
       
       ##these values set to constant for this purpose
       h.o<-0.1 # small constant value for surface water retention
-      k.v<-1# unstressed transpiration
+      k.v<-0.937/e.p# unstressed transpiration
       #M<-0.5 # ranges from 0 to 1 (but cant be one)
       w<-0 #assume no capillary rise
   }else{
@@ -84,7 +84,7 @@ water.bal<-function(M,s.o, type){
       
       ##these values set to constant for this purpose
       h.o<-0.1 # small constant value for surface water retention
-      k.v<-1# unstressed transpiration
+      k.v<-0.937/e.p# unstressed transpiration
       #M<-0.5 # ranges from 0 to 1 (but cant be one)
       w<-0 #assume no capillary rise
   }else{
@@ -96,7 +96,7 @@ water.bal<-function(M,s.o, type){
       
       ##these values set to constant for this purpose
       h.o<-0.1 # small constant value for surface water retention
-      k.v<-1# unstressed transpiration
+      k.v<-0.937/e.p# unstressed transpiration
       #M<-0.5 # ranges from 0 to 1 (but cant be one)
       w<-0 #assume no capillary rise
   }
@@ -113,19 +113,19 @@ gamma.ratio<-gamma_inc(gamma.depth, lambda*h.o)/gamma(gamma.depth)
 
 #define beta.s function
 beta.s<-function(M, s.o){
-  B<- ((1-M)/(1+M*k.v-w/e.p))+(k.v*(M^2)+(1-M)*w/e.p)/((2*(1+M*k.v-w/e.p)))
+  B<- ((1-M)/(1+M*k.v-w/e.p))+((k.v*(M^2)+(1-M)*w/e.p)/((2*(1+M*k.v-w/e.p)^2)))
   
   C<- 1/2*(M*k.v-w/e.p)^(-2)
   
-  E<-((alpha*n*(c-3)*Ksat*Matrix.pot*ex.diffus)/(pi*e.p^2))*s.o^((C+5)/2)
+  E<-((alpha*n*(c-3)*Ksat*Matrix.pot*ex.diffus)/(pi*e.p^2))*s.o^((c+5)/2)
   
-  beta<-(gamma.ratio)-((1+(alpha*h.o/e.p)/lambda*h.o)^(-1*gamma.depth))*((gamma_inc(gamma.depth, lambda*h.o +alpha*lambda*h.o/e.p))/gamma(gamma.depth))*exp(-B*E)+(1+gamma.ratio)*
-  (1-exp(-B*E-alpha*h.o/e.p)*(1+M*k.v+(2*B)^(1/2)*E-w/e.p)+
+  beta<-(gamma.ratio)-((1+(alpha*h.o/e.p)/lambda*h.o)^(-1*gamma.depth))*((gamma_inc(gamma.depth, (lambda*h.o+alpha*h.o/e.p)))/gamma(gamma.depth))*exp(-B*E)+
+    (1+gamma.ratio)*(1-exp(-B*E-alpha*h.o/e.p)*(1+M*k.v+(2*B)^(1/2)*E-w/e.p)+
      exp(-C*E-alpha*h.o/e.p)*(M*k.v +(2*C)^(1/2)*E-w/e.p)+
-     (2*E)^(1/2)*exp(-alpha*h.o/e.p)*(gamma_inc(3/2, C*E)-gamma_inc(3/2,B*E) + 
-     ((1+(alpha*h.o/e.p)/lambda*h.o)^(-1*gamma.depth))*(gamma_inc(gamma.depth, lambda*h.o+alpha*h.o/e.p )/gamma(gamma.depth))*(sqrt(2*E)*(gamma_inc(3/2, C*E)-gamma_inc(3/2,B*E))+
+     ((2*E)^(1/2))*exp(-alpha*h.o/e.p)*(gamma_inc(3/2, C*E)-gamma_inc(3/2,B*E)) + 
+     ((1+(1+(alpha*h.o/e.p)/lambda*h.o))^(-1*gamma.depth))*(gamma_inc(gamma.depth, lambda*h.o+(alpha*h.o/e.p))/gamma(gamma.depth))*(sqrt(2*E)*(gamma_inc(3/2, C*E)-gamma_inc(3/2,B*E))+
            exp(-C*E)*(M*k.v +(2*C)^(1/2)*E-w/e.p) -
-             exp(-B*E)*(M*k.v+(2*B)^(1/2)*E-w/e.p))))
+             exp(-B*E)*(M*k.v+(2*B)^(1/2)*E-w/e.p)))
 }
 
 
@@ -144,26 +144,26 @@ Runoff<-function(s.o){
 #b$value provides the value of the intergral
   ex.diffus<-s.o^((c+1)/2)*(1.85*s.o^(-1.85)*integrate(integrand.ex, lower = 0, upper = s.o)$value) #in.diffus and out.diffus are incorrectly specified
 ###Runoff model
-  mPa<-1113 # mean annual precipitation in mm, not sure if this needs to be changed to cm
-  G<-(Ksat*(m.n*m.r)/mPa)*((1+s.o^c)/2)-w/Ksat
+  mPa<-111.3 # mean annual precipitation in mm, not sure if this needs to be changed to cm
+  G<-(Ksat*(m.n*m.r)/mPa)*(((1+s.o^c)/2)-(w/Ksat))
 
   integrand.in<-function(x){x^((c+1)/2)*(x-s.o)^(2/3)}
   b.in<-integrate(integrand.in, lower = s.o, upper = 1)
-  in.diffus<-(1-s.o)^(5/3)*b.in$value
+  in.diffus<- (1-s.o)^(5/3)*b.in$value
 
   sigma<-((5*n*(c-3)*lambda^2*Ksat*Matrix.pot*in.diffus*m.r)/12*pi*gamma.depth^2)^(1/3)*(1-s.o)^(2/3)
 
-  Runoff.a<-mPa*(exp(-G-2*sigma)*gamma(sigma+1)*sigma^(-sigma)+((m.t*Ksat)/mPa)*s.o^c)
+  Runoff.a<-mPa*(exp(-G-2*sigma)*gamma(sigma+1)*sigma^(-sigma)+((m.t*Ksat)/m.Pa)*s.o^c)
 }
 
 
 #basic ET.model.a functions repeated from above
-ET.model.a<-function(M,s.o){
+ET.model.a<-function(M, s.o){
   ET.model.a<-((m.n*e.p)/alpha)*(1-M)*beta.s(M,s.o) + M*k.v
 }
 
 
-  abs(ET.model.a(M,s.o)+Runoff(s.o)-mPa)
+abs(ET.model.a(M,s.o)+Runoff(s.o)-m.Pa)
   
 }
 
@@ -176,9 +176,20 @@ clay<-mapply(water.bal, m.so$Var1, m.so$Var2, type="clay")
 #to determine which values of M and s.o close the water balance, we need to keep values where abs(ET.model.a(M,s.o)+Runoff(s.o)-mPa) is ~ 0
 
 #lets say we are willing to accept M and s.o values that fall within +/-5% of the Mean annual precidp
-wb<-cbind(m.so, test3)
-wb.small<-wb[wb$test3 < (mPa*0.0155),]
+wb.silt<-cbind(m.so, silt.loam)
+wb.silt.small<-wb.silt[wb.silt$silt.loam < (m.Pa*0.1),]
 
-plot(wb.small$Var1,wb.small$Var2,type="l", col="red")
+wb.sandy<-cbind(m.so, sandy.loam)
+wb.sandy.small<-wb.sandy[wb.sandy$sandy.loam <(m.Pa*0.1),]
 
-plot(wb.small$Var1,wb.small$Var2, type="l", col="red", main="Isoclines of parameter combinations (M,s.o) that satisfiy water balance closre for Clinton, MA", xlab="M, Canopy density", ylab="Equlibrium soil moisture, s.o")
+wb.clay.loam<-cbind(m.so, clay.loam)
+wb.clay.loam.small<-wb.clay.loam[wb.clay.loam$clay.loam < (mPa*0.2),]
+
+wb.clay<-cbind(m.so, clay)
+wb.clay.small<-wb.clay[wb.clay$clay < (mPa*0.1),]
+
+plot(wb.clay.small$Var1,wb.clay.small$Var2,type="p", col="red", xlim=c(0,1),ylim=c(0,1))
+lines(wb.clay.loam.small$Var1,wb.clay.loam.small$Var2,type="p", col="blue")
+lines(wb.sandy.small$Var1,wb.sandy.small$Var2,type="p", col="green")
+lines(wb.silt.small$Var1,wb.silt.small$Var2,type="p", col="purple")
+#plot(wb.small$Var1,wb.small$Var2, type="l", col="red", main="Isoclines of parameter combinations (M,s.o) that satisfiy water balance closre for Clinton, MA", xlab="M, Canopy density", ylab="Equlibrium soil moisture, s.o")
