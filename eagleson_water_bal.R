@@ -31,26 +31,72 @@ m.so<-expand.grid(M.1,s.o)
 #####################################
 #define site based model parameters##
 #####################################
-m.n<-109 # mean number of storms per year # obtained from Eagleson: Climate, Soil, and Vegetation
-e.p<-0.15 # average bare soil potential evaporation rate
-m.Pa<-102.6 #mean annual precipitation in cm
-m.r<-0.32 #mean storm depth--double check value
-m.b<-2.98 #in units of days
-m.t<-365 #mean rainy season
-alpha<-1/m.b #one over mean time between storms
-#Eagleson (2002) has poisson pulse parameters for a number of stations in Appendix F
-#for Clinton, MA, I used parameters for Boston (Station ID 14 in eagleson
-lambda<-1.47*2.54 #may be incorrect, changed inches to cm #scale parameter for gamma distribution of storm depths (1/cm)
-gamma.depth<-0.50 #these may be incorrect #shape parameter for the gamma distribution of storm depths
-
+if(site="Clinton"){
+  m.n<-109 # mean number of storms per year # obtained from Eagleson: Climate, Soil, and Vegetation
+  e.p<-0.15 # average bare soil potential evaporation rate
+  m.Pa<-102.6 #mean annual precipitation in cm
+  m.r<-0.32 #mean storm depth--double check value
+  m.b<-2.98 #in units of days
+  m.t<-365 #mean rainy season
+  alpha<-1/m.b #one over mean time between storms
+  #Eagleson (2002) has poisson pulse parameters for a number of stations in Appendix F
+  #for Clinton, MA, I used parameters for Boston (Station ID 14 in eagleson
+  lambda<-1.47*2.54 #may be incorrect, changed inches to cm #scale parameter for gamma distribution of storm depths (1/cm)
+  gamma.depth<-0.50 #these may be incorrect #shape parameter for the gamma distribution of storm depths
+}else{
+  if(site="SantaPaula"){
+    m.n<-109 # mean number of storms per year # obtained from Eagleson: Climate, Soil, and Vegetation
+    e.p<-0.27 # average bare soil potential evaporation rate
+    m.Pa<-54.4 #mean annual precipitation in cm
+    m.r<-1.4 #mean storm depth--double check value
+    m.b<-10.4 #in units of days
+    m.t<-212 #mean rainy season
+    alpha<-1/m.b #one over mean time between storms
+    #Eagleson (2002) has poisson pulse parameters for a number of stations in Appendix F
+    #for Clinton, MA, I used parameters for Boston (Station ID 14 in eagleson
+    lambda<-1.86*2.54 #may be incorrect, changed inches to cm #scale parameter for gamma distribution of storm depths (1/cm)
+    gamma.depth<-0.25 
+  }
+}
 
 #treat M and k.v as state variables
 
 #create a list of these params to feed into the water.bal model
 
 #the general water balance function
+
+
+
 water.bal<-function(M, s.o, type){
-  
+  #####################################
+  #define site based model parameters##
+  #####################################
+  if(site=="Clinton"){
+    m.n<-109 # mean number of storms per year # obtained from Eagleson: Climate, Soil, and Vegetation
+    e.p<-0.15 # average bare soil potential evaporation rate
+    m.Pa<-102.6 #mean annual precipitation in cm
+    m.r<-0.32 #mean storm depth--double check value
+    m.b<-2.98 #in units of days
+    m.t<-365 #mean rainy season
+    alpha<-1/m.b #one over mean time between storms
+    #Eagleson (2002) has poisson pulse parameters for a number of stations in Appendix F
+    #for Clinton, MA, I used parameters for Boston (Station ID 14 in eagleson
+    lambda<-1.47*2.54 #may be incorrect, changed inches to cm #scale parameter for gamma distribution of storm depths (1/cm)
+    gamma.depth<-0.50 #these may be incorrect #shape parameter for the gamma distribution of storm depths
+  }else{
+    if(site=="SantaPaula"){
+      m.n<-15.7 # mean number of storms per year # obtained from Eagleson: Climate, Soil, and Vegetation
+      e.p<-0.27 # average bare soil potential evaporation rate
+      m.Pa<-54.4 #mean annual precipitation in cm
+      m.r<-1.4 #mean storm depth--double check value
+      m.b<-10.42 #in units of days
+      m.t<-212 #mean rainy season
+      alpha<-1/m.b #one over mean time between storms
+      #Eagleson (2002) has poisson pulse parameters for a number of stations in Appendix F
+      #for Clinton, MA, I used parameters for Boston (Station ID 14 in eagleson
+      lambda<-1.86*2.54 #may be incorrect, changed inches to cm #scale parameter for gamma distribution of storm depths (1/cm)
+      gamma.depth<-0.25 
+    }}
   
 #define soil paramters
   if(type =="clay"){
@@ -99,7 +145,7 @@ water.bal<-function(M, s.o, type){
       k.v<-0.937/e.p# unstressed transpiration
       #M<-0.5 # ranges from 0 to 1 (but cant be one)
       w<-0 #assume no capillary rise
-  }
+  
   }}}
   
 #k.v<-0.097/e.p #unstressed composite transpiration rate/e.p
@@ -112,6 +158,8 @@ require(gsl)
 gamma.ratio<-gamma_inc(gamma.depth, lambda*h.o)/gamma(gamma.depth)
 
 #define beta.s function
+
+}
 beta.s<-function(M, s.o){
   B<- ((1-M)/(1+M*k.v-w/e.p))+((k.v*(M^2)+(1-M)*w/e.p)/((2*(1+M*k.v-w/e.p)^2)))
   
@@ -163,19 +211,23 @@ ET.model.a<-function(M, s.o){
 }
 
 
-abs(ET.model.a(M,s.o)+Runoff(s.o)-m.Pa)
+(ET.model.a(M,s.o)+Runoff(s.o)-m.Pa)^2
   
 }
 
 
-silt.loam<-mapply(water.bal, m.so$Var1, m.so$Var2, type="siltloam") # this is to test if R can handle the large m.so
+silt.loam<-mapply(water.bal, m.so$Var1, m.so$Var2,type="siltloam") # this is to test if R can handle the large m.so
+
+
+
 clay.loam<-mapply(water.bal, m.so$Var1, m.so$Var2, type="clayloam")
 sandy.loam<-mapply(water.bal, m.so$Var1, m.so$Var2, type="sandyloam")
-clay<-mapply(water.bal, m.so$Var1, m.so$Var2, type="clay")
+clay<-mapply(water.bal, m.so$Var1, m.so$Var2,type="clay")
 #test3 now contains the output of water.bal for all combinations of 100x100 values between 0 and 1
 #to determine which values of M and s.o close the water balance, we need to keep values where abs(ET.model.a(M,s.o)+Runoff(s.o)-mPa) is ~ 0
 
 #lets say we are willing to accept M and s.o values that fall within +/-5% of the Mean annual precidp
+#this is not really the best way of doing this
 wb.silt<-cbind(m.so, silt.loam)
 wb.silt.small<-wb.silt[wb.silt$silt.loam < (m.Pa*0.1),]
 
@@ -183,13 +235,38 @@ wb.sandy<-cbind(m.so, sandy.loam)
 wb.sandy.small<-wb.sandy[wb.sandy$sandy.loam <(m.Pa*0.1),]
 
 wb.clay.loam<-cbind(m.so, clay.loam)
-wb.clay.loam.small<-wb.clay.loam[wb.clay.loam$clay.loam < (mPa*0.2),]
+wb.clay.loam.small<-wb.clay.loam[wb.clay.loam$clay.loam < 50,]
 
 wb.clay<-cbind(m.so, clay)
-wb.clay.small<-wb.clay[wb.clay$clay < (mPa*0.1),]
+wb.clay.small<-wb.clay[wb.clay$clay < 0,]
 
 plot(wb.clay.small$Var1,wb.clay.small$Var2,type="p", col="red", xlim=c(0,1),ylim=c(0,1))
 lines(wb.clay.loam.small$Var1,wb.clay.loam.small$Var2,type="p", col="blue")
 lines(wb.sandy.small$Var1,wb.sandy.small$Var2,type="p", col="green")
 lines(wb.silt.small$Var1,wb.silt.small$Var2,type="p", col="purple")
 #plot(wb.small$Var1,wb.small$Var2, type="l", col="red", main="Isoclines of parameter combinations (M,s.o) that satisfiy water balance closre for Clinton, MA", xlab="M, Canopy density", ylab="Equlibrium soil moisture, s.o")
+
+test<-data.frame(matrix(unlist(wb.clay.loam), 10000))
+
+#trying to find a better way to find the s.o value for each M with the lowest Mean squared error
+y<-test[,1]
+x<-test[,2]
+a<-aggregate(y ~ x, test, min)
+
+y<-unique(test[,1])
+x<-unique(test[,2])
+x <- sample(1:100,20)
+which.min(x)
+a<-test[,.SD[which.min(test$X3)],]
+
+library(plyr)
+data=data.frame(test)
+a<-ddply(data, .(X2), summarise, X3=min(X3), 
+      X1=X1[which.min(X3)])
+plot(a$X1,a$X2)
+
+
+mins
+for(i in unique(test[,1]))){
+mins[i]<-test[test[which.min(test[test$X1==unique(test[3,1]),]$X3),],]
+}
