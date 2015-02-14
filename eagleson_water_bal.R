@@ -6,7 +6,7 @@
 ###Goal: 
 ###find s.o and M such that Pr.modeled = annual Precip
 ###in other words, such that ET.model.a(M,kv)-Runoff.model(s.o)-Annual Precip=0
-M.1<-as.list(runif(100)) #samples from uniform distribution to get values from 0 to 1
+M.1<-as.list(runif(200)) #samples from uniform distribution to get values from 0 to 1
 s.o<-M.1 #take the same values for s.o (also from 0 to 1)
 #set.seed(10)
 
@@ -27,6 +27,23 @@ m.so<-expand.grid(M.1,s.o)
 #M=vegetation canopy denisity
 #ET.model.a=evaporation component of water balance
 
+#in Eagleson Soil vegetation systems 1, he approximates beta.s
+#create approximate water balance
+beta.s.approx<-function(M,s.o){
+  B<- ((1-M)/(1+M*k.v-w/e.p))+((k.v*(M^2)+(1-M)*w/e.p)/((2*(1+M*k.v-w/e.p)^2)))
+  
+  C<- 1/2*(M*k.v-w/e.p)^(-2)
+  
+  E<-((alpha*n*(c-3)*Ksat*Matrix.pot*ex.diffus)/(pi*e.p^2))*s.o^((c+5)/2)
+  
+  
+(1-exp(-1*alpha*h.o/e.p)*(exp(-1*B*E)*(1+M*k.v+
+                (2*B)^(1/2)*E-w/e.p)-exp(-1*C*E)*(M*k.v+(2*C)^(1/2)*E-w/e.p)-
+                  (2*E)^(1/2)*(gamma_inc(3/2,C*E)-gamma_inc(3/2,B*E))))
+
+}
+in.diffus.approx<-((5/3)+(1/2)*(c+1)*(1-s.o)^(1.425-0.0375*(c+1)/2))^(-1)
+ex.diffus.approx<-(0.3477-(0.0731*c)+(0.0062*c^2)-0.0002*c^3)
 
 #####################################
 #define site based model parameters##
@@ -91,6 +108,7 @@ water.bal<-function(M, s.o, site, type){
       m.r<-1.4 #mean storm depth--double check value
       m.b<-10.42 #in units of days
       m.t<-212 #mean rainy season
+      c<-4.95
       alpha<-1/m.b #one over mean time between storms
       #Eagleson (2002) has poisson pulse parameters for a number of stations in Appendix F
       #for Clinton, MA, I used parameters for Boston (Station ID 14 in eagleson
@@ -106,7 +124,7 @@ water.bal<-function(M, s.o, site, type){
   n<-0.45 #soil porosity, for clay
   
   h.o<-0.1 # small constant value for surface water retention
-  k.v<-0.937/e.p# unstressed transpiration
+  k.v<-1# unstressed transpiration
   #M<-0.5 # ranges from 0 to 1 (but cant be one)
   w<-0 #assume no capillary rise
   }else{
@@ -118,7 +136,7 @@ water.bal<-function(M, s.o, site, type){
       
       ##these values set to constant for this purpose
       h.o<-0.1 # small constant value for surface water retention
-      k.v<-0.937/e.p# unstressed transpiration
+      k.v<-1# unstressed transpiration
       #M<-0.5 # ranges from 0 to 1 (but cant be one)
       w<-0 #assume no capillary rise
   }else{
@@ -142,7 +160,7 @@ water.bal<-function(M, s.o, site, type){
       
       ##these values set to constant for this purpose
       h.o<-0.1 # small constant value for surface water retention
-      k.v<-0.937/e.p# unstressed transpiration
+      k.v<-1# unstressed transpiration
       #M<-0.5 # ranges from 0 to 1 (but cant be one)
       w<-0 #assume no capillary rise
   
@@ -158,9 +176,21 @@ require(gsl)
 gamma.ratio<-gamma_inc(gamma.depth, lambda*h.o)/gamma(gamma.depth)
 
 #define beta.s function
-
+beta.s.approx<-function(M,s.o){
+  B<- ((1-M)/(1+M*k.v-w/e.p))+((k.v*(M^2)+(1-M)*w/e.p)/((2*(1+M*k.v-w/e.p)^2)))
+  
+  C<- 1/2*(M*k.v-w/e.p)^(-2)
+  
+  E<-((alpha*n*(c-3)*Ksat*Matrix.pot*ex.diffus)/(pi*e.p^2))*s.o^((c+5)/2)
+  
+  
+  (1-exp(-1*alpha*h.o/e.p)*(exp(-1*B*E)*(1+M*k.v+
+                                           (2*B)^(1/2)*E-w/e.p)-exp(-1*C*E)*(M*k.v+(2*C)^(1/2)*E-w/e.p)-
+                              (2*E)^(1/2)*(gamma_inc(3/2,C*E)-gamma_inc(3/2,B*E))))
+  
 }
-beta.s<-function(M, s.o){
+
+#beta.s<-function(M, s.o){
   B<- ((1-M)/(1+M*k.v-w/e.p))+((k.v*(M^2)+(1-M)*w/e.p)/((2*(1+M*k.v-w/e.p)^2)))
   
   C<- 1/2*(M*k.v-w/e.p)^(-2)
@@ -207,7 +237,7 @@ Runoff<-function(s.o){
 
 #basic ET.model.a functions repeated from above
 ET.model.a<-function(M, s.o){
-  ET.model.a<-((m.n*e.p)/alpha)*(1-M)*beta.s(M,s.o) + M*k.v
+  ET.model.a<-((m.n*e.p)/alpha)*(1-M)*beta.s.approx(M,s.o) + M*k.v
 }
 
 
@@ -226,10 +256,10 @@ clay<-mapply(water.bal, m.so$Var1, m.so$Var2,site="SantaPaula",type="clay")
 #lets say we are willing to accept M and s.o values that fall within +/-5% of the Mean annual precidp
 #this is not really the best way of doing this
 wb.silt<-cbind(m.so, silt.loam)
-wb.silt.small<-wb.silt[wb.silt$silt.loam < (m.Pa*0.1)^2,]
+wb.silt.small<-wb.silt[wb.silt$silt.loam < (m.Pa*0.2)^2,]
 #if we keep the object as the square (Pa-Pmodel)^2
 wb.sandy<-cbind(m.so, sandy.loam)
-wb.sandy.small<-wb.sandy[wb.sandy$sandy.loam <(m.Pa*0.1)^2,]
+wb.sandy.small<-wb.sandy[wb.sandy$sandy.loam <(m.Pa*0.2)^2,]
 
 wb.clay.loam<-cbind(m.so, clay.loam)
 wb.clay.loam.small<-wb.clay.loam[wb.clay.loam$clay.loam < (m.Pa*0.1)^2,]
@@ -243,7 +273,7 @@ lines(wb.sandy.small$Var1,wb.sandy.small$Var2,type="l", col="green")
 lines(wb.silt.small$Var1,wb.silt.small$Var2,type="l", col="purple")
 #plot(wb.small$Var1,wb.small$Var2, type="l", col="red", main="Isoclines of parameter combinations (M,s.o) that satisfiy water balance closre for Clinton, MA", xlab="M, Canopy density", ylab="Equlibrium soil moisture, s.o")
 
-test<-data.frame(matrix(unlist(wb.silt), 10000))
+test<-data.frame(matrix(unlist(wb.clay.loam), 10000))
 
 
 
@@ -253,19 +283,19 @@ test<-data.frame(matrix(unlist(wb.silt), 10000))
 
 library(plyr)
 data=data.frame(test)
-a<-ddply(data, .(X2), summarise, X3=min(X3), 
+a<-ddply(data, .(X1), summarise, X3=min(X3), 
       X1=X1[which.min(X3)])
-plot(a$X1,a$X2)
+plot(a$X1,a$X3)
 
 
 #or M
 require(reshape)
-subjmeans <- cast(test, X2~X1, mean)
+subjmeans <- cast(test, X1~X2, mean)
 min.M<-matrix(0,101,2)
 for(i in 2:101){
-  min.M[i,1]<-subjmeans[which.min(subjmeans[,i]),]$X2
-  min.M[i,2]<-as.numeric(colnames(subjmeans[,i]))
+  min.M[i,]<-subjmeans[which.min(subjmeans[,i]),]$X1
+  
 }
+min.M[,2]<-as.numeric(colnames(subjmeans[,]))
 
-
-plot(min.M[,1], min.M[,2], type="l")
+plot(min.M[2:101,1], min.M[2:101,2], type="l")
