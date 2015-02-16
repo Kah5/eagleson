@@ -42,8 +42,8 @@ beta.s.approx<-function(M,s.o){
                   (2*E)^(1/2)*(gamma_inc(3/2,C*E)-gamma_inc(3/2,B*E))))
 
 }
-in.diffus.approx<-function(s.o){((5/3)+(1/2)*(c+1)*(1-s.o)^(1.425-0.0375*(c+1)/2))^(-1)}
-ex.diffus.approx<-(0.3477-(0.0731*c)+(0.0062*c^2)-0.0002*c^3)
+
+
 
 #####################################
 #define site based model parameters##
@@ -180,6 +180,7 @@ beta.s.approx<-function(M,s.o){
   B<- ((1-M)/(1+M*k.v-w/e.p))+((k.v*(M^2)+(1-M)*w/e.p)/((2*(1+M*k.v-w/e.p)^2)))
   
   C<- 1/2*(M*k.v-w/e.p)^(-2)
+  ex.diffus.approx<-(0.3477-(0.0731*c)+(0.0062*c^2)-0.0002*c^3)
   
   E<-function(s.o){((alpha*n*(c-3)*Ksat*Matrix.pot*ex.diffus.approx/(pi*e.p^2))*s.o^((c+5)/2))}
   
@@ -217,21 +218,19 @@ beta.s.approx<-function(M,s.o){
 
 Runoff<-function(s.o){
 ## define the integrated function
-  integrand.ex <- function(x) {x^((c+1)/2)*(s.o-x)^(0.85)}
+  
 ## integrate the function from 0 to s.o
 #b$value provides the value of the intergral
-  ex.diffus<-s.o^((c+1)/2)*(1.85*s.o^(-1.85)*integrate(integrand.ex, lower = 0, upper = s.o)$value) #in.diffus and out.diffus are incorrectly specified
+in.diffus.approx<-function(s.o){((5/3)+(1/2)*(c+1)*(1-s.o)^(1.425-0.0375*(c+1)/2))^(-1)}
 ###Runoff model
-  mPa<-m.Pa # mean annual precipitation in mm, not sure if this needs to be changed to cm
+
+mPa<-m.Pa # mean annual precipitation in mm, not sure if this needs to be changed to cm
   G<-(Ksat*(m.n*m.r)/m.Pa)*(((1+s.o^c)/2)-(w/Ksat))
 
-  integrand.in<-function(x){x^((c+1)/2)*(x-s.o)^(2/3)}
-  b.in<-integrate(integrand.in, lower = s.o, upper = 1)
-  in.diffus<- (1-s.o)^(5/3)*b.in$value
 
-  sigma<-((5*n*(c-3)*lambda^2*Ksat*Matrix.pot*in.diffus*m.r)/12*pi*gamma.depth^2)^(1/3)*(1-s.o)^(2/3)
+  sigma<-function(s.o){((5*n*(c-3)*lambda^2*Ksat*Matrix.pot*in.diffus.approx(s.o)*m.r)/12*pi*gamma.depth^2)^(1/3)*(1-s.o)^(2/3)}
 
-  Runoff.a<-m.Pa*(exp(-G-2*sigma)*gamma(sigma+1)*sigma^(-sigma)+((m.t*Ksat)/m.Pa)*s.o^c)
+  Runoff.a<-m.Pa*(exp(-G-2*sigma(s.o))*gamma(sigma(s.o)+1)*sigma(s.o)^(-sigma(s.o))+((m.t*Ksat)/m.Pa)*s.o^c)
 }
 
 
