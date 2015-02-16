@@ -42,7 +42,7 @@ beta.s.approx<-function(M,s.o){
                   (2*E)^(1/2)*(gamma_inc(3/2,C*E)-gamma_inc(3/2,B*E))))
 
 }
-in.diffus.approx<-((5/3)+(1/2)*(c+1)*(1-s.o)^(1.425-0.0375*(c+1)/2))^(-1)
+in.diffus.approx<-function(s.o){((5/3)+(1/2)*(c+1)*(1-s.o)^(1.425-0.0375*(c+1)/2))^(-1)}
 ex.diffus.approx<-(0.3477-(0.0731*c)+(0.0062*c^2)-0.0002*c^3)
 
 #####################################
@@ -113,7 +113,7 @@ water.bal<-function(M, s.o, site, type){
       #Eagleson (2002) has poisson pulse parameters for a number of stations in Appendix F
       #for Clinton, MA, I used parameters for Boston (Station ID 14 in eagleson
       lambda<-1.86*2.54 #may be incorrect, changed inches to cm #scale parameter for gamma distribution of storm depths (1/cm)
-      gamma.depth<-0.25 
+      gamma.depth<-0.37 
     }}
   
 #define soil paramters
@@ -124,7 +124,7 @@ water.bal<-function(M, s.o, site, type){
   n<-0.45 #soil porosity, for clay
   
   h.o<-0.1 # small constant value for surface water retention
-  k.v<-1# unstressed transpiration
+  k.v<-1# for santapaula
   #M<-0.5 # ranges from 0 to 1 (but cant be one)
   w<-0 #assume no capillary rise
   }else{
@@ -181,30 +181,30 @@ beta.s.approx<-function(M,s.o){
   
   C<- 1/2*(M*k.v-w/e.p)^(-2)
   
-  E<-((alpha*n*(c-3)*Ksat*Matrix.pot*ex.diffus)/(pi*e.p^2))*s.o^((c+5)/2)
+  E<-function(s.o){((alpha*n*(c-3)*Ksat*Matrix.pot*ex.diffus.approx/(pi*e.p^2))*s.o^((c+5)/2))}
   
   
-  (1-exp(-1*alpha*h.o/e.p)*(exp(-1*B*E)*(1+M*k.v+
-                                           (2*B)^(1/2)*E-w/e.p)-exp(-1*C*E)*(M*k.v+(2*C)^(1/2)*E-w/e.p)-
-                              (2*E)^(1/2)*(gamma_inc(3/2,C*E)-gamma_inc(3/2,B*E))))
+ (1-exp(-1*alpha*h.o/e.p)*(exp(-1*B*E(s.o))*(1+M*k.v+
+                                           (2*B)^(1/2)*E(s.o)-w/e.p)-exp(-1*C*E(s.o))*(M*k.v+(2*C)^(1/2)*E(s.o-w/e.p)-
+                              (2*E(s.o))^(1/2)*(gamma_inc(3/2,C*E(s.o))-gamma_inc(3/2,B*E(s.o))))))
   
 }
 
 #beta.s<-function(M, s.o){
-  B<- ((1-M)/(1+M*k.v-w/e.p))+((k.v*(M^2)+(1-M)*w/e.p)/((2*(1+M*k.v-w/e.p)^2)))
+#  B<- ((1-M)/(1+M*k.v-w/e.p))+((k.v*(M^2)+(1-M)*w/e.p)/((2*(1+M*k.v-w/e.p)^2)))
   
-  C<- 1/2*(M*k.v-w/e.p)^(-2)
+#  C<- 1/2*(M*k.v-w/e.p)^(-2)
   
-  E<-((alpha*n*(c-3)*Ksat*Matrix.pot*ex.diffus)/(pi*e.p^2))*s.o^((c+5)/2)
+#  E<-((alpha*n*(c-3)*Ksat*Matrix.pot*ex.diffus)/(pi*e.p^2))*s.o^((c+5)/2)
   
-  beta<-(gamma.ratio)-((1+(alpha*h.o/e.p)/lambda*h.o)^(-1*gamma.depth))*((gamma_inc(gamma.depth, (lambda*h.o+alpha*h.o/e.p)))/gamma(gamma.depth))*exp(-B*E)+
-    (1+gamma.ratio)*(1-exp(-B*E-alpha*h.o/e.p)*(1+M*k.v+(2*B)^(1/2)*E-w/e.p)+
-     exp(-C*E-alpha*h.o/e.p)*(M*k.v +(2*C)^(1/2)*E-w/e.p)+
-     ((2*E)^(1/2))*exp(-alpha*h.o/e.p)*(gamma_inc(3/2, C*E)-gamma_inc(3/2,B*E)) + 
-     ((1+(1+(alpha*h.o/e.p)/lambda*h.o))^(-1*gamma.depth))*(gamma_inc(gamma.depth, lambda*h.o+(alpha*h.o/e.p))/gamma(gamma.depth))*(sqrt(2*E)*(gamma_inc(3/2, C*E)-gamma_inc(3/2,B*E))+
-           exp(-C*E)*(M*k.v +(2*C)^(1/2)*E-w/e.p) -
-             exp(-B*E)*(M*k.v+(2*B)^(1/2)*E-w/e.p)))
-}
+ # beta<-(gamma.ratio)-((1+(alpha*h.o/e.p)/lambda*h.o)^(-1*gamma.depth))*((gamma_inc(gamma.depth, (lambda*h.o+alpha*h.o/e.p)))/gamma(gamma.depth))*exp(-B*E)+
+  #  (1+gamma.ratio)*(1-exp(-B*E-alpha*h.o/e.p)*(1+M*k.v+(2*B)^(1/2)*E-w/e.p)+
+  #   exp(-C*E-alpha*h.o/e.p)*(M*k.v +(2*C)^(1/2)*E-w/e.p)+
+  #   ((2*E)^(1/2))*exp(-alpha*h.o/e.p)*(gamma_inc(3/2, C*E)-gamma_inc(3/2,B*E)) + 
+  #   ((1+(1+(alpha*h.o/e.p)/lambda*h.o))^(-1*gamma.depth))*(gamma_inc(gamma.depth, lambda*h.o+(alpha*h.o/e.p))/gamma(gamma.depth))*(sqrt(2*E)*(gamma_inc(3/2, C*E)-gamma_inc(3/2,B*E))+
+  #         exp(-C*E)*(M*k.v +(2*C)^(1/2)*E-w/e.p) -
+  #           exp(-B*E)*(M*k.v+(2*B)^(1/2)*E-w/e.p)))
+#}
 
 
 
@@ -237,40 +237,40 @@ Runoff<-function(s.o){
 
 #basic ET.model.a functions repeated from above
 ET.model.a<-function(M, s.o){
-  ET.model.a<-((m.n*e.p)/alpha)*(1-M)*beta.s.approx(M,s.o) + M*k.v
+  ((m.n*e.p)/alpha)*(1-M)*beta.s.approx(M,s.o) + M*k.v
 }
 
 
-(ET.model.a(M,s.o)+Runoff(s.o)-m.Pa)^2
+abs(ET.model.a(M,s.o)+Runoff(s.o)-m.Pa)
   
-}
+}}
 
 # this appears to work well for Clinton, MA, but not SantaPaula, CA
-silt.loam<-mapply(water.bal, m.so$Var1, m.so$Var2,site="SantaPaula",type="siltloam") # this is to test if R can handle the large m.so
-clay.loam<-mapply(water.bal, m.so$Var1, m.so$Var2,site="SantaPaula", type="clayloam")
-sandy.loam<-mapply(water.bal, m.so$Var1, m.so$Var2,site="SantaPaula", type="sandyloam")
-clay<-mapply(water.bal, m.so$Var1, m.so$Var2,site="SantaPaula",type="clay")
+silt.loam<-mapply(water.bal, M=m.so$Var1, s.o=m.so$Var2,site="Clinton",type="siltloam") # this is to test if R can handle the large m.so
+clay.loam<-mapply(water.bal, m.so$Var1, m.so$Var2,site="Clinton", type="clayloam")
+sandy.loam<-mapply(water.bal, m.so$Var1, m.so$Var2,site="Clinton", type="sandyloam")
+clay<-mapply(water.bal, m.so$Var1, m.so$Var2, site="Clinton", type="clay")
 #test3 now contains the output of water.bal for all combinations of 100x100 values between 0 and 1
 #to determine which values of M and s.o close the water balance, we need to keep values where abs(ET.model.a(M,s.o)+Runoff(s.o)-mPa) is ~ 0
 
 #lets say we are willing to accept M and s.o values that fall within +/-5% of the Mean annual precidp
 #this is not really the best way of doing this
 wb.silt<-cbind(m.so, silt.loam)
-wb.silt.small<-wb.silt[wb.silt$silt.loam < (m.Pa*0.2)^2,]
+wb.silt.small<-wb.silt[wb.silt$silt.loam < (m.Pa*0.01)^2,]
 #if we keep the object as the square (Pa-Pmodel)^2
 wb.sandy<-cbind(m.so, sandy.loam)
-wb.sandy.small<-wb.sandy[wb.sandy$sandy.loam <(m.Pa*0.2)^2,]
+wb.sandy.small<-wb.sandy[wb.sandy$sandy.loam <(m.Pa*0.01)^2,]
 
 wb.clay.loam<-cbind(m.so, clay.loam)
-wb.clay.loam.small<-wb.clay.loam[wb.clay.loam$clay.loam < (m.Pa*0.1)^2,]
+wb.clay.loam.small<-wb.clay.loam[wb.clay.loam$clay.loam < (m.Pa*0.01)^2,]
 
 wb.clay<-cbind(m.so, clay)
-wb.clay.small<-wb.clay[wb.clay$clay < (m.Pa*0.1)^2,]
+wb.clay.small<-wb.clay[wb.clay$clay < (m.Pa*0.01)^2,]
 
-plot(wb.clay.small$Var1,wb.clay.small$Var2,type="l", col="red", xlim=c(0,1),ylim=c(0,1))
-lines(wb.clay.loam.small$Var1,wb.clay.loam.small$Var2,type="l", col="blue")
-lines(wb.sandy.small$Var1,wb.sandy.small$Var2,type="l", col="green")
-lines(wb.silt.small$Var1,wb.silt.small$Var2,type="l", col="purple")
+plot(wb.clay.small$Var1,wb.clay.small$Var2,type="p", col="red", xlim=c(0,1),ylim=c(0,1))
+lines(wb.clay.loam.small$Var1,wb.clay.loam.small$Var2,type="p", col="blue")
+lines(wb.sandy.small$Var1,wb.sandy.small$Var2,type="p", col="green")
+lines(wb.silt.small$Var1,wb.silt.small$Var2,type="p", col="purple")
 #plot(wb.small$Var1,wb.small$Var2, type="l", col="red", main="Isoclines of parameter combinations (M,s.o) that satisfiy water balance closre for Clinton, MA", xlab="M, Canopy density", ylab="Equlibrium soil moisture, s.o")
 
 test<-data.frame(matrix(unlist(wb.clay.loam), 10000))
@@ -284,18 +284,18 @@ test<-data.frame(matrix(unlist(wb.clay.loam), 10000))
 library(plyr)
 data=data.frame(test)
 a<-ddply(data, .(X1), summarise, X3=min(X3), 
-      X1=X1[which.min(X3)])
-plot(a$X1,a$X3)
-
+      X1=X1[which.min(X3)],X2=X2[])
+plot(a$X1,a$X2)
+data[data$X3==a$X3,]
 
 #or M
 require(reshape)
-subjmeans <- cast(test, X1~X2, mean)
+subjmeans <- cast(test, X2~X1, min, value="X3")
 min.M<-matrix(0,101,2)
 for(i in 2:101){
-  min.M[i,]<-subjmeans[which.min(subjmeans[,i]),]$X1
+  min.M[i,]<-subjmeans[which.min(subjmeans[,i]),]$X2
   
 }
 min.M[,2]<-as.numeric(colnames(subjmeans[,]))
 
-plot(min.M[2:101,1], min.M[2:101,2], type="l")
+plot(min.M[2:101,2], min.M[2:101,1], type="l")
