@@ -168,16 +168,24 @@ water.bal<-function(M, s.o, site, type){
     E<-((alpha*n*(c-3)*Ksat*Matrix.pot*ex.diffus.approx)/(pi*e.p^2))*s.o^((c+5)/2)
     
     
-   (gamma.ratio)-((1+(alpha*h.o/e.p)/lambda*h.o)^(-1*gamma.depth))*((gamma_inc(gamma.depth, (lambda*h.o+alpha*h.o/e.p)))/gamma(gamma.depth))*exp(-B*E)+
-      (1+gamma.ratio)*(1-exp(-B*E-alpha*h.o/e.p)*(1+M*k.v+(2*B)^(1/2)*E-w/e.p)+
-                         exp(-C*E-alpha*h.o/e.p)*(M*k.v +(2*C)^(1/2)*E-w/e.p)+
-                         ((2*E)^(1/2))*exp(-alpha*h.o/e.p)*(gamma_inc(3/2, C*E)-gamma_inc(3/2,B*E)) + 
-                         ((1+(1+(alpha*h.o/e.p)/lambda*h.o))^(-1*gamma.depth))*(gamma_inc(gamma.depth, lambda*h.o+(alpha*h.o/e.p))/gamma(gamma.depth))*(sqrt(2*E)*(gamma_inc(3/2, C*E)-gamma_inc(3/2,B*E))+
-                                                                                                                                                          exp(-C*E)*(M*k.v +(2*C)^(1/2)*E-w/e.p) -
-                                                                                                                                                          exp(-B*E)*(M*k.v+(2*B)^(1/2)*E-w/e.p)))
+   (gamma.ratio)-((1+((alpha*h.o/e.p)/lambda*h.o))^(-1*gamma.depth))*((gamma_inc(gamma.depth, (lambda*h.o+alpha*h.o/e.p)))/gamma(gamma.depth))*exp(-B*E)+
+      (1+gamma.ratio)*(1-exp(-B*E-(alpha*h.o/e.p))*(1+M*k.v+(2*B)^(1/2)*E-(w/e.p))+
+                         exp(-C*E-(alpha*h.o/e.p))*(M*k.v +(2*C)^(1/2)*E-w/e.p)+
+                         ((2*E)^(1/2))*exp(-alpha*h.o/e.p)*(gamma_inc(3/2, C*E)-gamma_inc(3/2,B*E))) + 
+                         ((1+(alpha*h.o/e.p)/lambda*h.o))^(-1*gamma.depth)*(gamma_inc(gamma.depth, lambda*h.o+(alpha*h.o/e.p))/gamma(gamma.depth))*(sqrt(2*E)*(gamma_inc(3/2, C*E)-gamma_inc(3/2,B*E))+
+                         exp(-C*E)*(M*k.v +(2*C)^(1/2)*E-w/e.p) -
+                         exp(-B*E)*(M*k.v+(2*B)^(1/2)*E-w/e.p))
+  
+  
+#(gamma.ratio)-((1+(alpha*h.o/e.p)/lambda*h.o)^(-1*gamma.depth))*((gamma_inc(gamma.depth, (lambda*h.o+alpha*h.o/e.p)))/gamma(gamma.depth))*exp(-B*E)+
+#(1+gamma.ratio)*(1-exp(-B*E-alpha*h.o/e.p)*(1+M*k.v+(2*B)^(1/2)*E-w/e.p)+
+ # exp(-C*E-alpha*h.o/e.p)*(M*k.v +(2*C)^(1/2)*E-w/e.p)+
+  #((2*E)^(1/2))*exp(-alpha*h.o/e.p)*(gamma_inc(3/2, C*E)-gamma_inc(3/2,B*E)) + 
+ #((1+(1+(alpha*h.o/e.p)/lambda*h.o))^(-1*gamma.depth))*(gamma_inc(gamma.depth, lambda*h.o+(alpha*h.o/e.p))/gamma(gamma.depth))*(sqrt(2*E)*(gamma_inc(3/2, C*E)-gamma_inc(3/2,B*E))+
+  #exp(-C*E)*(M*k.v +(2*C)^(1/2)*E-w/e.p) -
+  #exp(-B*E)*(M*k.v+(2*B)^(1/2)*E-w/e.p)))
   }
-  
-  
+
   
   ##########################################
   #define exfiltration diffusivity & runoff#
@@ -188,21 +196,23 @@ water.bal<-function(M, s.o, site, type){
   
   Runoff<-function(s.o){
     ## define the integrated function
-    integrand.ex <- function(x) {x^((c+1)/2)*(s.o-x)^(0.85)}
+    #integrand.ex <- function(x) {x^((c+1)/2)*(s.o-x)^(0.85)}
     ## integrate the function from 0 to s.o
     #b$value provides the value of the intergral
-    ex.diffus<-s.o^((c+1)/2)*(1.85*s.o^(-1.85)*integrate(integrand.ex, lower = 0, upper = s.o)$value) #in.diffus and out.diffus are incorrectly specified
+    #ex.diffus<-s.o^((c+1)/2)*(1.85*s.o^(-1.85)*integrate(integrand.ex, lower = 0, upper = s.o)$value) #in.diffus and out.diffus are incorrectly specified
     ###Runoff model
     mPa<-m.Pa # mean annual precipitation in mm, not sure if this needs to be changed to cm
-    G<-(Ksat*(m.n*m.r)/m.Pa)*(((1+s.o^c)/2)-(w/Ksat))
+    #approximate value for in.diffus
+    in.diffus<-((5/3)+(1/2)*(c+1)*(1-s.o)^(1.425-0.0375*((c+1)/2)))^-1
+    G<-(Ksat*((m.n*m.r)/m.Pa))*(((1+s.o^c)/2)-(w/Ksat))
     
-    integrand.in<-function(x){x^((c+1)/2)*(x-s.o)^(2/3)}
-    b.in<-integrate(integrand.in, lower = s.o, upper = 1)
-    in.diffus<- (1-s.o)^(5/3)*b.in$value
+    #integrand.in<-function(x){x^((c+1)/2)*(x-s.o)^(2/3)}
+    #b.in<-integrate(integrand.in, lower = s.o, upper = 1)
+    #in.diffus<- (1-s.o)^(5/3)*b.in$value
     
     sigma<-((5*n*(c-3)*lambda^2*Ksat*Matrix.pot*in.diffus*m.r)/12*pi*gamma.depth^2)^(1/3)*(1-s.o)^(2/3)
     
-    m.Pa*(exp(-G-2*sigma)*gamma(sigma+1)*sigma^(-sigma)+((m.t*Ksat)/m.Pa)*s.o^c)
+    m.Pa*((exp(-1*G-2*sigma))*gamma(sigma+1)*sigma^(-sigma)+((m.t*Ksat)/m.Pa)*s.o^c)
   }
   
   
@@ -244,10 +254,10 @@ lines(wb.sandy.small$Var1,wb.sandy.small$Var2,type="p", col="green")
 lines(wb.silt.small$Var1,wb.silt.small$Var2,type="p", col="purple")
 #plot(wb.small$Var1,wb.small$Var2, type="l", col="red", main="Isoclines of parameter combinations (M,s.o) that satisfiy water balance closre for Clinton, MA", xlab="M, Canopy density", ylab="Equlibrium soil moisture, s.o")
 
-test<-data.frame(matrix(unlist(wb.silt), 10000))
-
-
-
+clay1<-data.frame(matrix(unlist(wb.clay), 40000))
+silt1<-data.frame(matrix(unlist(wb.silt), 40000))
+sand1<-data.frame(matrix(unlist(wb.silt), 40000))
+clayloam1<-data.frame(matrix(unlist(wb.clay.loam), 40000))
 
 #trying to find a better way to find the s.o value for each M with the lowest Mean squared error
 
@@ -256,17 +266,43 @@ library(plyr)
 data=data.frame(test)
 a<-ddply(data, .(X2), summarise, X3=min(X3), 
          X1=X1[which.min(X3)])
-plot(a$X1,a$X2)
+plot(a[,2],a[,3])
 
 
 #or M
 require(reshape)
-subjmeans <- cast(test, X2~X1, mean)
-min.M<-matrix(0,101,2)
-for(i in 2:101){
-  min.M[i,1]<-subjmeans[which.min(subjmeans[,i]),]$X2
-  min.M[i,2]<-as.numeric(colnames(subjmeans[,i]))
+clay.by <- cast(clay1, X2~X1, min,value="X3")
+min.clay<-matrix(0,201,2)
+for(i in 2:201){
+  min.clay[i,1]<-clay.by[which.min(clay.by[,i]),]$X2
+  
 }
+min.clay[1:200,2]<-as.numeric(colnames(clay.by[,2:201]))
+plot(min.clay[,2], min.clay[,1], type="p", xlim=c(0,1))
 
+require(reshape)
+silt.by <- cast(silt1, X2~X1, min,value="X3")
+min.silt<-matrix(0,201,2)
+for(i in 2:201){
+  min.silt[i,1]<-silt.by[which.min(silt.by[,i]),]$X2
+  }
+min.silt[1:200,2]<-as.numeric(colnames(silt.by[,2:201]))
+plot(min.silt[,2], min.silt[,1], type="p", xlim=c(0,1), ylim=c(0,1), col="purple")
 
-plot(min.M[,1], min.M[,2], type="l")
+require(reshape)
+sand.by <- cast(sand1, X2~X1, min,value="X3")
+min.sand<-matrix(0,201,2)
+for(i in 2:201){
+  min.sand[i,1]<-sand.by[which.min(sand.by[,i]),]$X2
+}
+min.sand[1:200,2]<-as.numeric(colnames(sand.by[,2:201]))
+plot(min.sand[,2], min.sand[,1], type="p", xlim=c(0,1), ylim=c(0,1), col="green")
+
+require(reshape)
+clayl.by <- cast(clayloam1, X2~X1, min,value="X3")
+min.clay.l<-matrix(0,201,2)
+for(i in 2:201){
+  min.clay.l[i,1]<-clayl.by[which.min(clayl.by[,i]),]$X2
+}
+min.clay.l[1:200,2]<-as.numeric(colnames(clayl.by[,2:201]))
+plot(min.clay.l[,2], min.clay.l[,1], type="p", xlim=c(0,1), ylim=c(0,1), col="green")
