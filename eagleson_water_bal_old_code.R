@@ -65,88 +65,112 @@ if(site="Clinton"){
 
 #the general water balance function
 
-
-
-water.bal<-function(M, s.o, site, type){
-  #####################################
-  #define site based model parameters##
-  #####################################
-  if(site=="Clinton"){
-    m.n<-109 # mean number of storms per year # obtained from Eagleson: Climate, Soil, and Vegetation
-    e.p<-0.15 # average bare soil potential evaporation rate
-    m.Pa<-102.6 #mean annual precipitation in cm
-    m.r<-0.32 #mean storm depth--double check value
-    m.b<-2.98 #in units of days
+if(site=="Clinton"){
+  m.n<-109 # mean number of storms per year # obtained from Eagleson: Climate, Soil, and Vegetation
+  e.p<-0.15 # average bare soil potential evaporation rate
+  m.Pa<-102.6 #mean annual precipitation in cm
+  m.r<-0.32 #mean storm depth--double check value
+  m.b<-2.98 #in units of days
+  m.t<-365 #mean rainy season
+  alpha<-1/m.b #one over mean time between storms
+  #Eagleson (2002) has poisson pulse parameters for a number of stations in Appendix F
+  #for Clinton, MA, I used parameters for Boston (Station ID 14 in eagleson
+  lambda<-1.47*2.54 #may be incorrect, changed inches to cm #scale parameter for gamma distribution of storm depths (1/cm)
+  gamma.depth<-0.50 #these may be incorrect #shape parameter for the gamma distribution of storm depths
+}else{
+  if(site=="SantaPaula"){
+    m.n<-15.7 # mean number of storms per year # obtained from Eagleson: Climate, Soil, and Vegetation
+    e.p<-0.27 # average bare soil potential evaporation rate
+    m.Pa<-54.4 #mean annual precipitation in cm
+    m.r<-0.14 #mean storm duration--double check value
+    m.b<-10.42 #in units of days
+    m.t<-212 #mean rainy season
+    alpha<-1/m.b #one over mean time between storms
+    #Eagleson (2002) has poisson pulse parameters for a number of stations in Appendix F
+    #for Clinton, MA, I used parameters for Boston (Station ID 14 in eagleson
+    lambda<-1.86 #may be incorrect, changed inches to cm #scale parameter for gamma distribution of storm depths (1/cm)
+    gamma.depth<-0.25 
+  }else{ if(site=="LosPinosMin")
+    m.n<-15.7 # mean number of storms per year # obtained from Eagleson: Climate, Soil, and Vegetation
+    e.p<-0.32 # average bare soil potential evaporation rate
+    m.Pa<-27.5 #mean annual precipitation in cm
+    m.r<-0.09 #mean storm duration--double check value
+    m.b<-3.17 #in units of days
     m.t<-365 #mean rainy season
     alpha<-1/m.b #one over mean time between storms
     #Eagleson (2002) has poisson pulse parameters for a number of stations in Appendix F
     #for Clinton, MA, I used parameters for Boston (Station ID 14 in eagleson
-    lambda<-1.47*2.54 #may be incorrect, changed inches to cm #scale parameter for gamma distribution of storm depths (1/cm)
-    gamma.depth<-0.50 #these may be incorrect #shape parameter for the gamma distribution of storm depths
-  }else{
-    if(site=="SantaPaula"){
-      m.n<-15.7 # mean number of storms per year # obtained from Eagleson: Climate, Soil, and Vegetation
-      e.p<-0.27 # average bare soil potential evaporation rate
-      m.Pa<-54.4 #mean annual precipitation in cm
-      m.r<-1.4 #mean storm depth--double check value
-      m.b<-10.42 #in units of days
-      m.t<-212 #mean rainy season
-      alpha<-1/m.b #one over mean time between storms
-      #Eagleson (2002) has poisson pulse parameters for a number of stations in Appendix F
-      #for Clinton, MA, I used parameters for Boston (Station ID 14 in eagleson
-      lambda<-1.86 #may be incorrect, changed inches to cm #scale parameter for gamma distribution of storm depths (1/cm)
-      gamma.depth<-0.25 
-    }}
+    lambda<-1.86 #may be incorrect, changed inches to cm #scale parameter for gamma distribution of storm depths (1/cm)
+    gamma.depth<-0.72  
+  }}
+
+#define soil paramters
+if(type =="clay"){
+  Ksat<-0.72 #k saturation
+  Matrix.pot<-25 #soil matrix potential
+  c<-12 #for clay
+  n<-0.45 #soil porosity, for clay
   
-  #define soil paramters
-  if(type =="clay"){
-    Ksat<-0.72 #k saturation
-    Matrix.pot<-25 #soil matrix potential
-    c<-12 #for clay
-    n<-0.45 #soil porosity, for clay
+  h.o<-0.1 # small constant value for surface water retention
+  k.v<-1# unstressed transpiration
+  #M<-0.5 # ranges from 0 to 1 (but cant be one)
+  w<-0 #assume no capillary rise
+}else{
+  if(type =="clayloam"){
+    Ksat<-2.0 #k saturation
+    Matrix.pot<-19 #soil matrix potential
+    c<-10 #for clayloam
+    n<-0.35 #soil porosity, for clay
     
+    ##these values set to constant for this purpose
     h.o<-0.1 # small constant value for surface water retention
-    k.v<-0.7# unstressed transpiration
+    k.v<-1# unstressed transpiration
     #M<-0.5 # ranges from 0 to 1 (but cant be one)
     w<-0 #assume no capillary rise
   }else{
-    if(type =="clayloam"){
-      Ksat<-2.0 #k saturation
-      Matrix.pot<-19 #soil matrix potential
-      c<-10 #for clayloam
+    if(type =="siltloam"){
+      Ksat<-8.64 #k saturation
+      Matrix.pot<-166 #soil matrix potential
+      c<-6 #for clayloam
       n<-0.35 #soil porosity, for clay
       
       ##these values set to constant for this purpose
       h.o<-0.1 # small constant value for surface water retention
-      k.v<-0.3# unstressed transpiration
+      k.v<-1# unstressed transpiration
       #M<-0.5 # ranges from 0 to 1 (but cant be one)
       w<-0 #assume no capillary rise
     }else{
-      if(type =="siltloam"){
-        Ksat<-8.64 #k saturation
-        Matrix.pot<-166 #soil matrix potential
-        c<-6 #for clayloam
-        n<-0.35 #soil porosity, for clay
+      if(type =="sandyloam"){
+        Ksat<-18 #k saturation
+        Matrix.pot<-200 #soil matrix potential
+        c<-4 #for clayloam
+        n<-0.25 #soil porosity, for clay
         
         ##these values set to constant for this purpose
         h.o<-0.1 # small constant value for surface water retention
-        k.v<-0.5# unstressed transpiration
+        k.v<-1# unstressed transpiration
         #M<-0.5 # ranges from 0 to 1 (but cant be one)
         w<-0 #assume no capillary rise
+        
       }else{
-        if(type =="sandyloam"){
-          Ksat<-18 #k saturation
-          Matrix.pot<-200 #soil matrix potential
-          c<-4 #for clayloam
-          n<-0.25 #soil porosity, for clay
+        if(type=="soil1"){
+          Ksat<-0.0028 #k saturation
+          Matrix.pot<-343.31 #soil matrix potential
+          c<-13.83 #for clayloam
+          n<-0.52 #soil porosity, for clay
           
           ##these values set to constant for this purpose
           h.o<-0.1 # small constant value for surface water retention
           k.v<-0.3# unstressed transpiration
           #M<-0.5 # ranges from 0 to 1 (but cant be one)
           w<-0 #assume no capillary rise
-          
-        }}}}
+        }}}}}
+
+water.bal<-function(M, s.o){
+  #####################################
+  #define site based model parameters##
+  #####################################
+  
     
     #k.v<-0.097/e.p #unstressed composite transpiration rate/e.p
     #k.v<-1
@@ -212,7 +236,7 @@ water.bal<-function(M, s.o, site, type){
     
     sigma<-((5*n*(c-3)*lambda^2*Ksat*Matrix.pot*in.diffus*m.r)/12*pi*gamma.depth^2)^(1/3)*(1-s.o)^(2/3)
     
-    m.Pa*((exp(-1*G-2*sigma))*gamma(sigma+1)*sigma^(-sigma)+((m.t*Ksat)/m.Pa)*s.o^c)
+    m.Pa*((exp(-1*G-2*sigma))*gamma(1+sigma)*sigma^(-sigma)+((m.t*Ksat)/m.Pa)*s.o^c)
   }
   
   
@@ -231,6 +255,7 @@ silt.loam<-mapply(water.bal, m.so$Var1, m.so$Var2,site="SantaPaula",type="siltlo
 clay.loam<-mapply(water.bal, m.so$Var1, m.so$Var2,site="SantaPaula", type="clayloam")
 sandy.loam<-mapply(water.bal, m.so$Var1, m.so$Var2,site="SantaPaula", type="sandyloam")
 clay<-mapply(water.bal, m.so$Var1, m.so$Var2,site="SantaPaula",type="clay")
+soil1<-mapply(water.bal, m.so$Var1, m.so$Var2)
 #test3 now contains the output of water.bal for all combinations of 100x100 values between 0 and 1
 #to determine which values of M and s.o close the water balance, we need to keep values where abs(ET.model.a(M,s.o)+Runoff(s.o)-mPa) is ~ 0
 
@@ -247,6 +272,11 @@ wb.clay.loam.small<-wb.clay.loam[wb.clay.loam$clay.loam < (m.Pa*0.2)^2,]
 
 wb.clay<-cbind(m.so, clay)
 wb.clay.small<-wb.clay[wb.clay$clay < (m.Pa*0.2)^2,]
+
+wb.soil1<-cbind(m.so, soil1)
+wb.soil1.small<-wb.soil1[wb.soil1$soil1<(m.Pa*0.1)^2,]
+
+plot(wb.soil1.small$Var1,wb.soil1.small$Var2,type="p", col="red", xlim=c(0,1),ylim=c(0,1))
 
 plot(wb.clay.small$Var1,wb.clay.small$Var2,type="p", col="red", xlim=c(0,1),ylim=c(0,1))
 lines(wb.clay.loam.small$Var1,wb.clay.loam.small$Var2,type="p", col="blue")
@@ -305,4 +335,4 @@ for(i in 2:201){
   min.clay.l[i,1]<-clayl.by[which.min(clayl.by[,i]),]$X2
 }
 min.clay.l[1:200,2]<-as.numeric(colnames(clayl.by[,2:201]))
-plot(min.clay.l[,2], min.clay.l[,1], type="p", xlim=c(0,1), ylim=c(0,1), col="green")
+plot(min.clay.l[,2], min.clay.l[,1], type="p", xlim=c(0,1), ylim=c(0,1), col="red")
