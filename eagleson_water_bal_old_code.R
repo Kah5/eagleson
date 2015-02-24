@@ -166,12 +166,26 @@ if(type =="clay"){
           w<-0 #assume no capillary rise
         }}}}}
 
+##########soil2
+Ksat<-0.65 #k saturation
+Matrix.pot<-52.53 #soil matrix potential
+c<-17.07 #for clayloam
+n<-0.47 #soil porosity, for clay
+
+##these values set to constant for this purpose
+h.o<-0.1 # small constant value for surface water retention
+k.v<-0.3# unstressed transpiration
+#M<-0.5 # ranges from 0 to 1 (but cant be one)
+w<-0 #assume no capillary rise
+
 water.bal<-function(M, s.o){
   #####################################
   #define site based model parameters##
   #####################################
   
-    
+  (ET.model.a(M, s.o)+Runoff(s.o)-m.Pa)^2
+  
+}  
     #k.v<-0.097/e.p #unstressed composite transpiration rate/e.p
     #k.v<-1
     #####################
@@ -220,7 +234,7 @@ water.bal<-function(M, s.o){
   
   Runoff<-function(s.o){
     ## define the integrated function
-    #integrand.ex <- function(x) {x^((c+1)/2)*(s.o-x)^(0.85)}
+    integrand.ex <- function(x) {x^((c+1)/2)*(s.o-x)^(0.85)}
     ## integrate the function from 0 to s.o
     #b$value provides the value of the intergral
     #ex.diffus<-s.o^((c+1)/2)*(1.85*s.o^(-1.85)*integrate(integrand.ex, lower = 0, upper = s.o)$value) #in.diffus and out.diffus are incorrectly specified
@@ -245,11 +259,17 @@ water.bal<-function(M, s.o){
     ((m.n*e.p)/alpha)*(1-M)*beta.s(M,s.o) + M*k.v
   }
   
-  
-  (ET.model.a(M, s.o)+Runoff(s.o)-m.Pa)^2
-  
-}
+ H2o.ET<-mapply(ET.model.a, m.so$Var1,m.so$Var2)
+ H2o.Runoff<-mapply(Runoff, m.so$Var2)
+H2o.P<-H2o.ET+H2o.Runoff
+H2o.Diff<-data.frame((H2o.P - m.Pa)^2)
+H2o.Diff$M<-m.so$Var1
+H2o.Diff$s.o<-m.so$Var2
 
+wb.h2o.Diff<-H2o.Diff[H2o.Diff$X.H2o.P...m.Pa..2< (m.Pa*0.1)^2,]
+plot(wb.h2o.Diff$M, wb.h2o.Diff$s.o, ylim=c(0,1))
+
+testcast<-cast(wb.h2o.Diff, M~s.o)
 # this appears to work well for Clinton, MA, but not SantaPaula, CA
 silt.loam<-mapply(water.bal, m.so$Var1, m.so$Var2,site="SantaPaula",type="siltloam") # this is to test if R can handle the large m.so
 clay.loam<-mapply(water.bal, m.so$Var1, m.so$Var2,site="SantaPaula", type="clayloam")
@@ -262,19 +282,20 @@ soil1<-mapply(water.bal, m.so$Var1, m.so$Var2)
 #lets say we are willing to accept M and s.o values that fall within +/-5% of the Mean annual precidp
 #this is not really the best way of doing this
 wb.silt<-cbind(m.so, silt.loam)
-wb.silt.small<-wb.silt[wb.silt$silt.loam < (m.Pa*0.2)^2,]
+wb.silt.small<-wb.silt[wb.silt$silt.loam < (m.Pa*0.2),]
+
 #if we keep the object as the square (Pa-Pmodel)^2
 wb.sandy<-cbind(m.so, sandy.loam)
-wb.sandy.small<-wb.sandy[wb.sandy$sandy.loam <(m.Pa*0.2)^2,]
+wb.sandy.small<-wb.sandy[wb.sandy$sandy.loam <(m.Pa*0.2),]
 
 wb.clay.loam<-cbind(m.so, clay.loam)
-wb.clay.loam.small<-wb.clay.loam[wb.clay.loam$clay.loam < (m.Pa*0.2)^2,]
+wb.clay.loam.small<-wb.clay.loam[wb.clay.loam$clay.loam < (m.Pa*0.2),]
 
 wb.clay<-cbind(m.so, clay)
-wb.clay.small<-wb.clay[wb.clay$clay < (m.Pa*0.2)^2,]
+wb.clay.small<-wb.clay[wb.clay$clay < (m.Pa*0.1),]
 
 wb.soil1<-cbind(m.so, soil1)
-wb.soil1.small<-wb.soil1[wb.soil1$soil1<(m.Pa*0.1)^2,]
+wb.soil1.small<-wb.soil1[wb.soil1$soil1<(m.Pa*0.1),]
 
 plot(wb.soil1.small$Var1,wb.soil1.small$Var2,type="p", col="red", xlim=c(0,1),ylim=c(0,1))
 
@@ -288,7 +309,7 @@ clay1<-data.frame(matrix(unlist(wb.clay), 40000))
 silt1<-data.frame(matrix(unlist(wb.silt), 40000))
 sand1<-data.frame(matrix(unlist(wb.silt), 40000))
 clayloam1<-data.frame(matrix(unlist(wb.clay.loam), 40000))
-
+rest<-data.frame(matrix(unlist(wb.h2o.Diff)))
 #trying to find a better way to find the s.o value for each M with the lowest Mean squared error
 
 
@@ -311,7 +332,7 @@ min.clay[1:200,2]<-as.numeric(colnames(clay.by[,2:201]))
 plot(min.clay[,2], min.clay[,1], type="p", xlim=c(0,1))
 
 require(reshape)
-silt.by <- cast(silt1, X2~X1, min,value="X3")
+silt.by <- cast(silt1, X2~X1, min, value="X3")
 min.silt<-matrix(0,201,2)
 for(i in 2:201){
   min.silt[i,1]<-silt.by[which.min(silt.by[,i]),]$X2
